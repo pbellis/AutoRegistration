@@ -23,7 +23,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 include(../pcl.pri)
-include(../boost.pri)
 
 win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../AlignmentPredictionLib/release/ -lAlignmentPredictionLib
 else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../AlignmentPredictionLib/debug/ -lAlignmentPredictionLib

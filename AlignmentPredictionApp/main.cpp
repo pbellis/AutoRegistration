@@ -11,6 +11,7 @@
 #include "graph_theory.h"
 #include "statistical_shape.h"
 #include "multivariate_statistics.h"
+#include "statistical_distance.h"
 
 #include <typeinfo>
 
@@ -125,4 +126,5 @@ int main(int argc, char *argv[])
            pcl_visualizer.spinOnce();
        }
    }
+
 }
