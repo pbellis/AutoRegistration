@@ -3,6 +3,6 @@ CONFIG += ordered
 
 SUBDIRS += \
     AlignmentPredictionLib \
-    AlignmentPredictionApp
-
-AlignmentPredictionApp.depends += AlignmentPredictionLib
+#    AlignmentPredictionApp \
+#    AlignmentVisualizationLib \
+    Sandbox

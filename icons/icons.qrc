@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>align.png</file>
+        <file>save.png</file>
+        <file>scan.png</file>
+    </qresource>
+</RCC>

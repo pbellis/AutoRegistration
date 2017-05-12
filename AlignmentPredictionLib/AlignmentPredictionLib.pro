@@ -25,21 +25,22 @@ DEFINES += QT_DEPRECATED_WARNINGS
 include(../pcl.pri)
 
 SOURCES += \
-    prediction.cpp \
     graph_theory.cpp \
-    clustering.cpp \
     statistical_shape.cpp \
     statistical_distance.cpp \
-    multivariate_statistics.cpp
+    entropy.cpp \
+    registration.cpp
 
 HEADERS +=\
         alignmentpredictionlib_global.h \
-    prediction.h \
     graph_theory.h \
-    clustering.h \
-    multivariate_statistics.h \
     statistical_shape.h \
-    statistical_distance.h
+    statistical_distance.h \
+    covariance.h \
+    numeric_stability.h \
+    entropy.h \
+    mean.h \
+    registration.h
 
 unix {
     target.path = /usr/lib

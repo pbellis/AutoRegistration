@@ -1,5 +1,4 @@
-QT += core
-QT -= gui
+QT += core gui widgets
 
 CONFIG += c++11
 
@@ -8,8 +7,6 @@ CONFIG += console
 CONFIG -= app_bundle
 
 TEMPLATE = app
-
-SOURCES += main.cpp
 
 # The following define makes your compiler emit warnings if you use
 # any feature of Qt which as been marked deprecated (the exact warnings
@@ -30,3 +27,24 @@ else:unix: LIBS += -L$$OUT_PWD/../AlignmentPredictionLib/ -lAlignmentPredictionL
 
 INCLUDEPATH += $$PWD/../AlignmentPredictionLib
 DEPENDPATH += $$PWD/../AlignmentPredictionLib
+
+FORMS += pclviewer.ui \
+    autoalignviewer.ui \
+    distancematrixvisualizer.ui
+
+HEADERS += pclviewer.h \
+    openni2handler.h \
+    autoalignviewer.h \
+    autoaligner.h \
+    distancematrixvisualizer.h \
+    pointcloudnormalhandler.h
+
+SOURCES += main.cpp \
+pclviewer.cpp \
+    openni2handler.cpp \
+    autoalignviewer.cpp \
+    autoaligner.cpp \
+    distancematrixvisualizer.cpp
+
+RESOURCES += \
+    ../icons/icons.qrc

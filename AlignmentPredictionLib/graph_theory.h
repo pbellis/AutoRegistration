@@ -85,4 +85,28 @@ bool ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_graph_center(int &center, con
 //!
 bool ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_optimal_path(Eigen::VectorXi &path, const int &center, const Eigen::VectorXi &minimum_spanning_tree, const Eigen::VectorXi &node_degree);
 
+//!
+//! \brief calculate_node_distances
+//!     A function that calculates the number of edges between each node and the center of the graph.
+//! \param node_distances
+//!     The output vector containting the number of edges between each node and the center of the graph.
+//! \param path
+//!     The subgraph path that indicates which node a node is connected to.
+//! \param center
+//!     The center node of the graph.
+//! \return
+//!
+bool ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_node_distances(Eigen::VectorXi &node_distances, const Eigen::VectorXi &path, const Eigen::VectorXi &node_degree, const int &center);
+
+//!
+//! \brief sort_nodes_by_distance
+//!     A function that sorts all the nodes by their distance away from the center of the graph. This sorts so that it is smallest first.
+//! \param sorted_nodes
+//!     The output vector containing all the nodes in ascending order.
+//! \param node_distances
+//!     The distances of each node towards the center node.
+//! \return
+//!
+bool ALIGNMENTPREDICTIONLIBSHARED_EXPORT sort_nodes_by_distance(Eigen::VectorXi &sorted_nodes, const Eigen::VectorXi &node_distances);
+
 #endif // GRAPH_THEORY_H

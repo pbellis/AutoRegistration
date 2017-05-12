@@ -1,6 +1,7 @@
 #include "graph_theory.h"
 
 #include <vector>
+#include <stack>
 #include <numeric>
 
 bool calculate_minimum_spanning_tree(double &total_distance, Eigen::VectorXi &minimum_spanning_tree, const Eigen::MatrixXd &distance_matrix)
@@ -186,3 +187,45 @@ bool calculate_optimal_path(Eigen::VectorXi &path, const int &center, const Eige
     return true;
 }
 
+
+bool calculate_node_distances(Eigen::VectorXi &node_distances, const Eigen::VectorXi &path, const Eigen::VectorXi &node_degree, const int &center)
+{
+    const auto n = path.rows();
+
+    node_distances.resize(n);
+    node_distances[center] = 0;
+
+    std::stack<int> distance_stack;
+    distance_stack.push(0);
+
+    for (auto i = 0; i < n; ++i)
+    {
+        if (node_degree[i] == 1)
+        {
+            for (auto j = i; j != center; j = path[j])
+            {
+                distance_stack.push(distance_stack.top() + 1);
+            }
+            for (auto j = i; j != center; j = path[j])
+            {
+                node_distances[j] = distance_stack.top();
+                distance_stack.pop();
+            }
+        }
+    }
+
+    return true;
+}
+
+bool sort_nodes_by_distance(Eigen::VectorXi &sorted_nodes, const Eigen::VectorXi &node_distances)
+{
+    const auto n = node_distances.rows();
+    sorted_nodes.resize(n);
+
+    std::iota(sorted_nodes.data(), sorted_nodes.data() + n, 0);
+    std::sort(sorted_nodes.data(), sorted_nodes.data() + n, [&](int i, int j){
+        return node_distances[i] < node_distances[j];
+    });
+
+    return true;
+}

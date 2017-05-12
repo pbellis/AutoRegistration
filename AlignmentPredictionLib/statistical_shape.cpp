@@ -1,6 +1,9 @@
 #include "statistical_shape.h"
 
-#include "multivariate_statistics.h"
+#include "covariance.h"
+#include "mean.h"
+#include "entropy.h"
+#include "statistical_distance.h"
 
 #include <algorithm>
 #include <numeric>
@@ -76,20 +79,19 @@ void find_uncertain_region(std::vector<int> &uncertain_indices, const std::vecto
 
     auto matrix_map = cloud.getMatrixXfMap(3, 4, 0).cast<double>();
     auto vector_map = Eigen::VectorXd::Map(ownership_uncertainty.data(), cloud_size);
-    const double total = vector_map.sum();
-    auto normalized_vector_map = (1 / total) * vector_map;
+    auto sum = vector_map.sum();
     auto inverse_vector_map = (1 - vector_map.array()).matrix();
-    auto inverse_normalized_vector_map = (1 / (static_cast<double>(cloud_size) - total)) * inverse_vector_map;
-    const double sum_squared_weights = 1 - normalized_vector_map.dot(normalized_vector_map);
-    const double inverse_sum_squared_weights = 1 - inverse_normalized_vector_map.dot(inverse_normalized_vector_map);
+    auto inverse_sum = ownership_uncertainty.size() - sum;
 
-    Eigen::Vector3d uncertain_mean;
-    Eigen::Matrix3d uncertain_covariance;
-    calculate_weighted_mean_and_covariance(uncertain_mean, uncertain_covariance, matrix_map, normalized_vector_map, sum_squared_weights);
+    Eigen::VectorXd uncertain_mean;
+    Eigen::MatrixXd uncertain_covariance;
+    calculate_mean(uncertain_mean, matrix_map, (1 / sum) * vector_map);
+    calculate_covariance(uncertain_covariance, matrix_map.rowwise() - uncertain_mean.transpose(), (1 / sum) * vector_map);
 
-    Eigen::Vector3d certain_mean;
-    Eigen::Matrix3d certain_covariance;
-    calculate_weighted_mean_and_covariance(certain_mean, certain_covariance, matrix_map, inverse_normalized_vector_map, inverse_sum_squared_weights);
+    Eigen::VectorXd certain_mean;
+    Eigen::MatrixXd certain_covariance;
+    calculate_mean(uncertain_mean, matrix_map, (1 / inverse_sum) * inverse_vector_map);
+    calculate_covariance(uncertain_covariance, matrix_map.rowwise() - certain_mean.transpose(), (1 / inverse_sum) * inverse_vector_map);
 
     const Eigen::Matrix3d uncertain_precision = uncertain_covariance.inverse();
     const Eigen::Matrix3d certain_precision = certain_covariance.inverse();
@@ -112,70 +114,144 @@ void find_uncertain_region(std::vector<int> &uncertain_indices, const std::vecto
     }
 }
 
-void calcuate_statistical_shape(std::vector<StatisticalShape> &statistical_shape, const pcl::PointCloud<pcl::PointXYZ> &cloud, const pcl::KdTreeFLANN<pcl::PointXYZ> &kdtree, double radius)
+void calcuate_curvature_change(std::vector<double> &curvature_change, const pcl::PointCloud<pcl::PointXYZ> &cloud, const pcl::KdTreeFLANN<pcl::PointXYZ> &kdtree, double radius)
 {
-    const size_t N = cloud.size();
-    statistical_shape.clear();
-    statistical_shape.reserve(N);
+    const size_t n = cloud.size();
+    curvature_change.clear();
+    curvature_change.reserve(n);
 
     std::vector<int> k_indices;
     std::vector<float> k_sqr_distances;
 
-    Eigen::Vector3d mean;
-    Eigen::Matrix3d covariance;
+    Eigen::VectorXd mean;
+    Eigen::MatrixXd covariance;
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigen_solver;
     Eigen::Vector3d eigen_values;
 
-    auto matrix_map = cloud.getMatrixXfMap(3, 4, 0).cast<double>();
+    auto matrix_map = cloud.getMatrixXfMap().cast<double>();
 
     for (const auto &point : cloud.points)
     {
         kdtree.radiusSearch(point, radius, k_indices, k_sqr_distances);
-        calculate_mean_and_covariance(mean, covariance, matrix_map, k_indices);
-        eigen_values = eigen_solver.computeDirect(covariance, Eigen::EigenvaluesOnly).eigenvalues();
-        statistical_shape.push_back(
-                    StatisticalShape{
-                        (eigen_values[2] - eigen_values[1]) / eigen_values[2],
-                        (eigen_values[1] - eigen_values[0]) / eigen_values[2],
-                        (eigen_values[0] / eigen_values[2]),
-                        (eigen_values[0] * eigen_values[1] * eigen_values[2]),
-                        (eigen_values[2] - eigen_values[0]) / eigen_values[2],
-                        eigen_values[0] / (eigen_values[0] + eigen_values[1] + eigen_values[2])
-                    });
+        calculate_mean(mean, matrix_map, k_indices);
+        calculate_covariance(covariance, matrix_map, mean, k_indices);
+        eigen_values = eigen_solver.computeDirect(covariance.block<3,3>(0,0), Eigen::EigenvaluesOnly).eigenvalues();
+        curvature_change.push_back(eigen_values[0] / (eigen_values[0] + eigen_values[1] + eigen_values[2]));
+//                    StatisticalShape{
+//                        (eigen_values[2] - eigen_values[1]) / eigen_values[2],
+//                        (eigen_values[1] - eigen_values[0]) / eigen_values[2],
+//                        (eigen_values[0] / eigen_values[2]),
+//                        (eigen_values[0] * eigen_values[1] * eigen_values[2]),
+//                        (eigen_values[2] - eigen_values[0]) / eigen_values[2],
+//                        eigen_values[0] / (eigen_values[0] + eigen_values[1] + eigen_values[2])
+//                    });
     }
 }
 
-void calcuate_statistical_shape(std::vector<StatisticalShape> &statistical_shape, const pcl::PointCloud<pcl::PointXYZ> &cloud, const pcl::KdTreeFLANN<pcl::PointXYZ> &kdtree, double radius, const std::vector<int> &indices)
+//void calcuate_statistical_shape(std::vector<StatisticalShape> &statistical_shape, const pcl::PointCloud<pcl::PointXYZ> &cloud, const pcl::KdTreeFLANN<pcl::PointXYZ> &kdtree, double radius, const std::vector<int> &indices)
+//{
+//    const size_t N = cloud.size();
+//    statistical_shape.clear();
+//    statistical_shape.resize(N);
+
+//    std::vector<int> k_indices;
+//    std::vector<float> k_sqr_distances;
+
+//    Eigen::Vector3d mean;
+//    Eigen::Matrix3d covariance;
+//    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigen_solver;
+//    Eigen::Vector3d eigen_values;
+
+//    auto matrix_map = cloud.getMatrixXfMap(3, 4, 0).cast<double>();
+
+//    for (const auto &index : indices)
+//    {
+//        const auto &point = cloud.points[index];
+
+//        kdtree.radiusSearch(point, radius, k_indices, k_sqr_distances);
+//        calculate_mean_and_covariance(mean, covariance, matrix_map, k_indices);
+//        eigen_values = eigen_solver.computeDirect(covariance, Eigen::EigenvaluesOnly).eigenvalues();
+//        statistical_shape[index] =
+//                StatisticalShape{
+//                        (eigen_values[2] - eigen_values[1]) / eigen_values[2],
+//                        (eigen_values[1] - eigen_values[0]) / eigen_values[2],
+//                        (eigen_values[0] / eigen_values[2]),
+//                        (eigen_values[0] * eigen_values[1] * eigen_values[2]),
+//                        (eigen_values[2] - eigen_values[0]) / eigen_values[2],
+//                        eigen_values[0] / (eigen_values[0] + eigen_values[1] + eigen_values[2])
+//                    };
+//    }
+//}
+
+void calculate_statistical_shape(Eigen::MatrixXd &statistical_shape, const pcl::PointCloud<pcl::PointXYZ> &cloud, const pcl::KdTreeFLANN<pcl::PointXYZ> &kdtree, double radius)
 {
-    const size_t N = cloud.size();
-    statistical_shape.clear();
-    statistical_shape.resize(N);
+    const size_t n = cloud.size();
+    const size_t d = 3;
+
+    statistical_shape.resize(d, n);
 
     std::vector<int> k_indices;
     std::vector<float> k_sqr_distances;
 
-    Eigen::Vector3d mean;
-    Eigen::Matrix3d covariance;
+    Eigen::VectorXd mean;
+    Eigen::MatrixXd covariance;
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigen_solver;
     Eigen::Vector3d eigen_values;
 
-    auto matrix_map = cloud.getMatrixXfMap(3, 4, 0).cast<double>();
+    auto matrix_map = cloud.getMatrixXfMap().cast<double>();
 
-    for (const auto &index : indices)
+    for (int i = 0; i < n; ++i)
     {
-        const auto &point = cloud.points[index];
-
+        const auto &point = cloud.points[i];
         kdtree.radiusSearch(point, radius, k_indices, k_sqr_distances);
-        calculate_mean_and_covariance(mean, covariance, matrix_map, k_indices);
-        eigen_values = eigen_solver.computeDirect(covariance, Eigen::EigenvaluesOnly).eigenvalues();
-        statistical_shape[index] =
-                StatisticalShape{
-                        (eigen_values[2] - eigen_values[1]) / eigen_values[2],
-                        (eigen_values[1] - eigen_values[0]) / eigen_values[2],
-                        (eigen_values[0] / eigen_values[2]),
-                        (eigen_values[0] * eigen_values[1] * eigen_values[2]),
-                        (eigen_values[2] - eigen_values[0]) / eigen_values[2],
-                        eigen_values[0] / (eigen_values[0] + eigen_values[1] + eigen_values[2])
-                    };
+        calculate_mean(mean, matrix_map, k_indices);
+        calculate_covariance(covariance, matrix_map, mean, k_indices);
+        eigen_values = eigen_solver.computeDirect(covariance.block<3,3>(0,0), Eigen::EigenvaluesOnly).eigenvalues();
+        statistical_shape.col(i) = eigen_values;
+    }
+}
+
+void calculate_statistical_shape(Eigen::MatrixXd &statistical_shape, const pcl::PointCloud<pcl::PointXYZ> &cloud, const pcl::KdTreeFLANN<pcl::PointXYZ> &kdtree, int k)
+{
+    const size_t n = cloud.size();
+    const size_t d = 3;
+
+    statistical_shape.resize(d, n);
+
+    std::vector<int> k_indices;
+    std::vector<float> k_sqr_distances;
+
+    Eigen::VectorXd mean;
+    Eigen::MatrixXd covariance;
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigen_solver;
+    Eigen::Vector3d eigen_values;
+
+    auto matrix_map = cloud.getMatrixXfMap().cast<double>();
+
+    for (int i = 0; i < n; ++i)
+    {
+        const auto &point = cloud.points[i];
+        kdtree.nearestKSearch(point, k, k_indices, k_sqr_distances);
+        calculate_mean(mean, matrix_map, k_indices);
+        calculate_covariance(covariance, matrix_map, mean, k_indices);
+        eigen_values = eigen_solver.computeDirect(covariance.block<3,3>(0,0), Eigen::EigenvaluesOnly).eigenvalues();
+        statistical_shape.col(i) = eigen_values;
+    }
+}
+
+void calculate_features(Eigen::VectorXd &features, const Eigen::MatrixXd &statistical_shape, double det, const Eigen::VectorXd &mean, const Eigen::MatrixXd &precision)
+{
+    const size_t d = statistical_shape.rows();
+    const size_t n = statistical_shape.cols();
+
+    double peak;
+    calculate_multivariate_pdf(peak, mean, det, mean, precision);
+
+    features.resize(n);
+
+    for (int i = 0; i < n; ++i)
+    {
+        calculate_multivariate_pdf(features[i], statistical_shape.col(i), det, mean, precision);
+        features[i] = 1.0 - features[i] / peak;
     }
 }

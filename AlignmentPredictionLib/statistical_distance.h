@@ -12,6 +12,20 @@
 
 //!
 //! \brief calculate_multivariate_hellinger_distance
+//!     A function that calculates the statistical distance between two distributions which have a similar mean. For the purpose of alignment prediction, we assume that the distribution
+//!     is roughly normal. Running time is O(1)
+//!     See: https://en.wikipedia.org/wiki/Hellinger_distance
+//! \param distance
+//!     The statistical distance between two distributions. This in the range [0, 1] where 0 indicates clossness and 1 indicates farness.
+//! \param source_covariance
+//!     The covariance matrix of the source cloud
+//! \param target_covariance
+//!     The covariance matrix of the target cloud
+//!
+void ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_multivariate_hellinger_distance(double &distance, const Eigen::MatrixXd &source_covariance, const Eigen::MatrixXd &target_covariance);
+
+//!
+//! \brief calculate_multivariate_hellinger_distance
 //!     A function that calculates the statistical distance between two distributions. For the purpose of alignment prediction, we assume that the distribution
 //!     is roughly normal. Running time is O(1)
 //!     See: https://en.wikipedia.org/wiki/Hellinger_distance
@@ -26,7 +40,7 @@
 //! \param target_covariance
 //!     The covariance matrix of the target cloud
 //!
-void ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_multivariate_hellinger_distance(double &distance, const Eigen::Vector3d &source_mean, const Eigen::Matrix3d &source_covariance, const Eigen::Vector3d &target_mean, const Eigen::Matrix3d &target_covariance);
+void ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_multivariate_hellinger_distance(double &distance, const Eigen::VectorXd &source_mean, const Eigen::MatrixXd &source_covariance, const Eigen::VectorXd &target_mean, const Eigen::MatrixXd &target_covariance);
 
 //!
 //! \brief calculate_multivariate_hellinger_distance
@@ -39,6 +53,10 @@ void ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_multivariate_hellinger_distan
 //! \param covariances
 //!     A set of covariances where covariances[i] is the covariance of distribution i
 //!
-void ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_multivariate_hellinger_distance(Eigen::MatrixXd &distance_matrix, const std::vector<Eigen::Vector3d> &means, const std::vector<Eigen::Matrix3d> &covariances);
+void ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_multivariate_hellinger_distance(Eigen::MatrixXd &distance_matrix, const std::vector<Eigen::VectorXd> &means, const std::vector<Eigen::MatrixXd> &covariances);
+
+void ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_mahalanobis_distance(double &distance, const Eigen::VectorXd &point, const Eigen::VectorXd &mean, const Eigen::MatrixXd &precision);
+
+void ALIGNMENTPREDICTIONLIBSHARED_EXPORT calculate_multivariate_pdf(double &pdf, const Eigen::VectorXd &point, double det, const Eigen::VectorXd &mean, const Eigen::MatrixXd &precision);
 
 #endif // STATISTICAL_DISTANCE_H
